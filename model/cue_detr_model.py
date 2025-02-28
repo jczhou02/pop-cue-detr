@@ -21,9 +21,10 @@ class CuePointDetr(pl.LightningModule):
         if 'config' in kwargs and kwargs['config'] is not None:
             self.model = DetrForObjectDetection(kwargs['config'])
         elif 'detr_checkpoint' in kwargs and kwargs['detr_checkpoint'] is not None:
+            print(f'Loading model from the args.finetune since args.fully_pt is set')
             self.model = DetrForObjectDetection.from_pretrained(
                 kwargs['detr_checkpoint'],
-                num_labels=1,
+                num_labels=3,
                 ignore_mismatched_sizes=True,
                 )
         assert self.model is not None, 'Model initialization failed.'

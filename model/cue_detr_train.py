@@ -39,7 +39,7 @@ def train_cue_points(args):
     detr_config = None
     if args.bb_pt or args.no_pt:
         detr_config = DetrConfig(
-            num_labels=1,
+            num_labels=3,
             num_queries=args.num_queries,
             use_pretrained_backbone=args.bb_pt,
             auxiliary_loss=args.auxiliary_loss,
@@ -199,7 +199,7 @@ if __name__ == '__main__':
     parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--epochs', default=10, type=int)
     parser.add_argument('--grad_clip', default=0.1, type=float)
-    parser.add_argument('--batch_size', default=128, type=int)
+    parser.add_argument('--batch_size', default=32, type=int)
     parser.add_argument('--gpus', default=1, type=int)
     # parser.add_argument('--nodes', default=1, type=int)
 
