@@ -34,13 +34,16 @@ class CuePointDetr(pl.LightningModule):
         self.weight_decay = weight_decay
         self.save_hyperparameters()
 
+    def load_state_dict(self, state_dict, strict: bool = False):
+    # Force strict=False to ignore missing keys (like the classifier head).
+        return super().load_state_dict(state_dict, strict=False)
+
     def on_load_checkpoint(self, checkpoint):
-        # Remove keys for the classification head to avoid size mismatch.
         state_dict = checkpoint["state_dict"]
-        keys_to_remove = [k for k in state_dict.keys() if k.startswith("model.class_labels_classifier")]
-        for key in keys_to_remove:
-            del state_dict[key]
-        # No need to return anything; the modified state_dict will be used.
+    # If the classifier keys are missing, insert the current model's values.
+        for key in ["model.class_labels_classifier.weight", "model.class_labels_classifier.bias"]:
+            if key not in state_dict:
+                state_dict[key] = self.model.state_dict()[key]
 
     def forward(self, pixel_values, labels=None):
         return self.model(pixel_values=pixel_values, labels=labels)
