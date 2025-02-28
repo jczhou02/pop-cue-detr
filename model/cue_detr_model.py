@@ -21,25 +21,26 @@ class CuePointDetr(pl.LightningModule):
         if 'config' in kwargs and kwargs['config'] is not None:
             self.model = DetrForObjectDetection(kwargs['config'])
         elif 'detr_checkpoint' in kwargs and kwargs['detr_checkpoint'] is not None:
-            print(f'Loading model from the checkpoint with custom classes')
-            # Load a model with the new number of labels (3 custom cues, so DETR creates 4 outputs including background)
+            print(f'Loading model from the args.finetune since args.fully_pt is set')
             self.model = DetrForObjectDetection.from_pretrained(
                 kwargs['detr_checkpoint'],
                 num_labels=3,
-                ignore_mismatched_sizes=True,  # This may ignore some weights but not the classification head
-            )
-            # Now, remove the mismatched classifier head weights from the checkpoint state dict.
-            state_dict = self.model.state_dict()
-            # Create a filtered state dict that excludes classifier weights and biases.
-            filtered_state_dict = {k: v for k, v in state_dict.items() if not k.startswith("class_labels_classifier")}
-            # Load the filtered state dict into the model with strict=False.
-            self.model.load_state_dict(filtered_state_dict, strict=False)
+                ignore_mismatched_sizes=True,
+                )
         assert self.model is not None, 'Model initialization failed.'
         
         self.lr = lr
         self.lr_backbone = lr_backbone
         self.weight_decay = weight_decay
         self.save_hyperparameters()
+
+    def on_load_checkpoint(self, checkpoint):
+        # Remove keys for the classification head to avoid size mismatch.
+        state_dict = checkpoint["state_dict"]
+        keys_to_remove = [k for k in state_dict.keys() if k.startswith("model.class_labels_classifier")]
+        for key in keys_to_remove:
+            del state_dict[key]
+        # No need to return anything; the modified state_dict will be used.
 
     def forward(self, pixel_values, labels=None):
         return self.model(pixel_values=pixel_values, labels=labels)
