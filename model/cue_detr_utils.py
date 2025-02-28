@@ -17,24 +17,34 @@ def get_slice_borders(w, cue, b):
 
 
 def get_image_slice(image, l, r):
-    """ Returns the image slice with possible borders overlapping the original image """
-    if l < 0:
-        img_slice = image[:, :r]
-        assert img_slice.shape[1] == r, f'Invalid slice width: {img_slice.shape[1]}, should be {r} (l: {l}, r: {r})'
-        
-        pad = -l
-        img_slice = np.pad(img_slice, ((0, 0), (pad, 0), (0, 0)), mode='linear_ramp')
-    elif r > image.shape[1]:
-        img_slice = image[:, l:]
-        assert img_slice.shape[1] == image.shape[1] - l, f'Invalid slice width: {img_slice.shape[1]}, should be {image.shape[1] - l} (l: {l}, r: {r})'
-        
-        pad = r - l - img_slice.shape[1]
-        img_slice = np.pad(img_slice, ((0, 0), (0, pad), (0, 0)), mode='linear_ramp')
-    else:
-        img_slice = image[:, l:r]
+    """
+    Returns an image slice of desired width (r - l) by cropping the available portion
+    and padding if the requested slice extends beyond the image boundaries.
+    """
+    desired_width = r - l
+    # Determine the region to crop from the image:
+    left_crop = max(0, l)
+    right_crop = min(r, image.shape[1])
+    img_slice = image[:, left_crop:right_crop]
     
-    assert img_slice.shape[1] == r - l, f'Invalid slice width: {img_slice.shape[1]}, should be {r - l} (l: {l}, r: {r})'
+    # Calculate padding needed on the left and right:
+    left_pad = max(0, 0 - l)
+    right_pad = max(0, r - image.shape[1])
+    
+    # Pad the image if necessary:
+    if left_pad > 0 or right_pad > 0:
+        img_slice = np.pad(
+            img_slice, 
+            ((0, 0), (left_pad, right_pad), (0, 0)), 
+            mode='linear_ramp'
+        )
+    
+    assert img_slice.shape[1] == desired_width, (
+        f'Invalid slice width: {img_slice.shape[1]}, '
+        f'should be {desired_width} (l: {l}, r: {r})'
+    )
     return img_slice
+
 
 
 def cue_to_bbox(cue_dict, w_box, h_box, l, r):
