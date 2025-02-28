@@ -21,12 +21,19 @@ class CuePointDetr(pl.LightningModule):
         if 'config' in kwargs and kwargs['config'] is not None:
             self.model = DetrForObjectDetection(kwargs['config'])
         elif 'detr_checkpoint' in kwargs and kwargs['detr_checkpoint'] is not None:
-            print(f'Loading model from the args.finetune since args.fully_pt is set')
+            print(f'Loading model from the checkpoint with custom classes')
+            # Load a model with the new number of labels (3 custom cues, so DETR creates 4 outputs including background)
             self.model = DetrForObjectDetection.from_pretrained(
                 kwargs['detr_checkpoint'],
                 num_labels=3,
-                ignore_mismatched_sizes=True,
-                )
+                ignore_mismatched_sizes=True,  # This may ignore some weights but not the classification head
+            )
+            # Now, remove the mismatched classifier head weights from the checkpoint state dict.
+            state_dict = self.model.state_dict()
+            # Create a filtered state dict that excludes classifier weights and biases.
+            filtered_state_dict = {k: v for k, v in state_dict.items() if not k.startswith("class_labels_classifier")}
+            # Load the filtered state dict into the model with strict=False.
+            self.model.load_state_dict(filtered_state_dict, strict=False)
         assert self.model is not None, 'Model initialization failed.'
         
         self.lr = lr
