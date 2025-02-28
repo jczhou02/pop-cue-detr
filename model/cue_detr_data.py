@@ -322,6 +322,7 @@ class CueTrainModule(pl.LightningDataModule):
 
         if stage == 'fit' or stage is None:
             image_names = [os.path.split(f)[1] for f in glob.glob(self.image_dir + '*.png')]
+            print(f"Found {len(image_names)} images in {self.image_dir}")
 
             if 'pipeline_test' in self.settings and self.settings['pipeline_test'] is True:
                 # use only a subset of the data for testing the pipeline
@@ -330,6 +331,7 @@ class CueTrainModule(pl.LightningDataModule):
             else:
                 # use a split of the data for training and validation
                 train_images, val_images = train_test_split(image_names, test_size=0.1, random_state=42)
+                print(f"Using {len(train_images)} training images and {len(val_images)} validation images")
 
             self.train_dataset = CueTrainDataset(train_images, self.image_dir, self.image_processor)
             self.val_dataset = CueTrainDataset(val_images, self.image_dir, self.image_processor)
@@ -352,14 +354,16 @@ class CueTrainModule(pl.LightningDataModule):
 
 
     def train_dataloader(self):
-        return DataLoader(
-            self.train_dataset,
-            num_workers=1,
-            batch_size=self.batch_size,
-            drop_last=True,
-            shuffle=True,
-            collate_fn=collate_fn,
-        )
+        loader = DataLoader(
+        self.train_dataset,
+        num_workers=1,
+        batch_size=self.batch_size,
+        drop_last=True,
+        shuffle=True,
+        collate_fn=collate_fn,
+    )
+        print(f"Train DataLoader has {len(loader)} batches")
+        return loader
     
     def val_dataloader(self):
         return DataLoader(

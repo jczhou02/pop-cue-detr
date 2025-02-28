@@ -44,7 +44,10 @@ class CuePointDetr(pl.LightningModule):
         keys_to_remove = [k for k in state_dict.keys() if k.startswith("model.class_labels_classifier")]
         for key in keys_to_remove:
             del state_dict[key]
-        # No need to return anything; the modified state_dict will be used.
+    # No need to return anything; the modified state_dict will be used.
+    # Clear the optimizer states so that no old state (with mismatched shapes) is loaded.
+    # This will cause the optimizer to be reinitialized from scratch.
+        checkpoint["optimizer_states"] = []
 
     def forward(self, pixel_values, labels=None):
         return self.model(pixel_values=pixel_values, labels=labels)
