@@ -160,7 +160,8 @@ def setup_callbacks(args, data_module):
     # Image logger callback
     data_module.prepare_data()
     data_module.setup()
-    image_logger_callback = CuePredictionLogger(args.slice_idx, data_module.val_dataset)
+    slice_idx = args.slice_idx if args.slice_idx < len(data_module.val_dataset) else 0
+    image_logger_callback = CuePredictionLogger(slice_idx, data_module.val_dataset)
     callbacks.append(image_logger_callback)
 
     # LR finder callback

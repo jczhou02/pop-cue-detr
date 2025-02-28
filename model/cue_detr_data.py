@@ -38,7 +38,7 @@ class CueTrainDataset(Dataset):
         # image ids from current dataset (split)
         self.image_ids = sorted([i['id'] for i in coco['images'] if i['file_name'] in img_names])
         self.images = {i: [] for i in self.image_ids}           # image_id -> {image}
-        self.image_to_ann = {i: [] for i in self.image_ids}     # image_id -> [image's ann_ids]
+        self.image_to_ann = {i: [] for i in self.image_ids}     # image_id -> [image's ann_ids]    ;  my_annotations (1).json has 'No Object' png spectrogram windows, so these image_ids will have empty list
         
         # annotation and image ids from current dataset (split)
         self.ann_ids = []
@@ -72,42 +72,44 @@ class CueTrainDataset(Dataset):
 
 
     def __len__(self) -> int:
-        return len(self.ann_ids)
+        return len(self.image_ids)
 
 
     def __getitem__(self, idx):
+        # ann_id = self.ann_ids[idx]         // for my negative class images, ann_id is not present in annotations.json 
+        # curr_ann = deepcopy(self.annotations[ann_id])
+        # image_id = curr_ann['image_id']
+        image_id = self.image_ids[idx]
 
-        ann_id = self.ann_ids[idx]
-        curr_ann = deepcopy(self.annotations[ann_id])
-        image_id = curr_ann['image_id']
         image = np.asarray(Image.open(self.images[image_id]['file_name']).convert('RGB'))
-        
+        ann_ids = self.image_to_ann.get(image_id, [])
         boxes = []
-        if self.reuse_slice and 'slice' in curr_ann.keys():
-            l, r = curr_ann['slice']['lr']
-            boxes = curr_ann['slice']['boxes']
-            curr_ann.pop('slice')
-        else:
-            # fix cue to start of image
+        if ann_ids:
+            # Use the first annotation to define the cue-based slice.
+            curr_ann = deepcopy(self.annotations[ann_ids[0]])
             c = curr_ann['position']
             l, r = get_slice_borders(self.w_slice, c, b=self.box_area)
-            
-            # see if the slice contains more annotations
-            track_ann_ids = self.image_to_ann[image_id]
             h = self.images[image_id]['height']
-            for i in track_ann_ids:
-                if l <= self.annotations[i]['position'] <= r:
-                    cue = deepcopy(self.annotations[i])
-                    boxes.append(cue_to_bbox(cue, self.w_bbox, h, l, r))
-
-            # keep for next time in original annotation
+            
+            # Build bounding boxes for all annotations that fall within the slice.
+            for a_id in ann_ids:
+                ann = deepcopy(self.annotations[a_id])
+                if l <= ann['position'] <= r:
+                    boxes.append(cue_to_bbox(ann, self.w_bbox, h, l, r))
+            
             if self.reuse_slice:
-                self.annotations[ann_id]['slice'] = {
+                # Optionally save slice info for reuse
+                self.annotations[ann_ids[0]]['slice'] = {
                     'lr': (l, r), 
-                    'boxes': boxes}
+                    'boxes': boxes
+                }
+        else:
+            # for images with no annotation entry, decide a default slice that the image processor learns from - such as the center
+            image_width = self.images[image_id]['width']
+            l = max(0, (image_width - self.w_slice) // 2)
+            r = l + self.w_slice
 
-        assert len(boxes) > 0, f'No cue points in slice [{l}, {r}] based on cue point at {c}.'
-
+        # assert len(boxes) > 0, f'No cue points in slice [{l}, {r}] based on cue point at {c}.'
         img_slice = get_image_slice(image, l, r)
 
         assert r - l == self.w_slice, f'Invalid slice width: {r - l}, should be {self.w_slice} (l: {l}, r: {r})'
