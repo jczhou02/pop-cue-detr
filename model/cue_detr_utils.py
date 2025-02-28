@@ -86,22 +86,36 @@ def cxcywh_to_xyxy(center_box):
 
 
 def draw_image_with_boxes(image, boxes, box_color, is_xyxy=False):
-    """ image: PIL image, labels: list of target dicts that contain the 'boxes' key """
+    """
+    Draws bounding boxes on a PIL image.
+    
+    Args:
+        image (PIL.Image): The image to draw on.
+        boxes (torch.Tensor): Tensor of bounding boxes in either [cx, cy, w, h] or [x1, y1, x2, y2] format.
+        box_color (str): Color for the bounding boxes.
+        is_xyxy (bool): If True, boxes are assumed to be in xyxy format.
+    
+    Returns:
+        PIL.Image: The image with drawn boxes.
+    """
+    # If there are no boxes, return the image as is.
+    if boxes.numel() == 0:
+        return image
 
     W, H = image.size
     draw = ImageDraw.Draw(image)
     
-    # Convert to pixel values
+    # Convert from cxcywh to xyxy if needed.
     if not is_xyxy:
         boxes = cxcywh_to_xyxy(boxes)
     boxes *= torch.tensor([W, H, W, H]).type_as(boxes)
-    # boxes *= torch.tensor([W, H, W, H]).to(boxes.device)
     
     for box in boxes:
-        # skip empty boxes from padding
+        # Skip boxes that are essentially empty (from padding)
         if torch.count_nonzero(box) > 0:
             draw.rectangle(tuple(box.tolist()), outline=box_color, width=1)
     return image
+
 
 
 def plot_boxes(images, gt_targets, pd_targets, save_dir):
