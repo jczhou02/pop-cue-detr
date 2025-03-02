@@ -76,7 +76,21 @@ def cxcywh_to_xyxy(center_box):
 
 
 def draw_image_with_boxes(image, boxes, box_color, is_xyxy=False):
-    """ image: PIL image, labels: list of target dicts that contain the 'boxes' key """
+    """
+    Draws bounding boxes on a PIL image.
+    
+    Args:
+        image (PIL.Image): The image to draw on.
+        boxes (torch.Tensor): Tensor of bounding boxes in either [cx, cy, w, h] or [x1, y1, x2, y2] format.
+        box_color (str): Color for the bounding boxes.
+        is_xyxy (bool): If True, boxes are assumed to be in xyxy format.
+    
+    Returns:
+        PIL.Image: The image with drawn boxes.
+    """
+    # If there are no boxes, return the image as is.
+    if boxes.numel() == 0:
+        return image
 
     W, H = image.size
     draw = ImageDraw.Draw(image)
