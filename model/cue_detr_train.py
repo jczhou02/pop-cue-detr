@@ -213,7 +213,7 @@ if __name__ == '__main__':
     # WandB
     # TODO: train without wandb if args not given
     parser.add_argument('--wandb_user', type=str)
-    parser.add_arguemnt('--wandb_project', type=str)
+    parser.add_argument('--wandb_project', type=str)
     parser.add_argument('--wandb_run_dir', type=str, help='Directory to save wandb run logs.')
     parser.add_argument('--run_name', type=str)
     parser.add_argument('--run_nr', type=int)

@@ -25,7 +25,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--print', action='store_true', help="Print cue points to console")
     args = parser.parse_args()
 
-    tracklist = [file for file in os.listdir(args.tracks) if file.endswith('.mp3')]
+    tracklist = [file for file in os.listdir(args.tracks) if file.endswith('.wav')]
     cue_points = {track: [] for track in tracklist}
     scale = lambda x: (x - np.min(x)) / (np.max(x) - np.min(x))
 
